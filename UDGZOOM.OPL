@@ -1,0 +1,8 @@
+UDGZOOM:(N%)
+
+REM Zooms the UDG number N% from UDGBUF%() into the UDGs 0-3 like this:
+REM 0 2
+REM 1 3
+
+LOCAL COL%,ROW%,CURU%,VAL%,RES%
+COL%=4

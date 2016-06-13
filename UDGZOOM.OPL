@@ -4,5 +4,48 @@ REM Zooms the UDG number N% from UDGBUF%() into the UDGs 0-3 like this:
 REM 0 2
 REM 1 3
 
+REM UDGBUF%() needs to be declared in an outer scope
+REM which may then use UDGMAN:, UDGINIT:(NAME$), ESYUDG:(N%,U%), UDGZOOM:(N%)
+
+REM COL%, encodes the half of the UDG we work on in a very useful way
+REM (4 is first half, 1 is second half)
+REW ROW%: current row, CURU%: current UDG, VAL% read UDG bits
+REM RES% resulting bits to be written in current UDG
 LOCAL COL%,ROW%,CURU%,VAL%,RES%
-COL%=4
+COL% = 4
+CURU% = 0
+DO
+  REM let the display IC know with UDG we want to set
+  POKEB $180, 64 + CURU% *8
+  ROW% = 1
+  DO
+    IF ROW% = 5
+      REM second half, adress UDG below
+      POKEB $180, 64 * (CURU% + 1) * 8
+    ENDIF
+    REM LOAD three bits of COL% (NOTE: COL%=4=first three (MSBs), COL=1=second three (LSBs))
+    REM first and second column overlap by three
+    VAL% = (UDGBUF%(N% * 8 + ROW%) AND (7 * COL%)) / COL%
+    
+    RES%=(VAL% AND 4) * 4
+    RES%=RES% + (VAL AND 2) * 2
+    RES%=RES% + (VAL AND 1)
+    
+    REM add the right shifted bit pattern of itself to get the 2x width of the pixels
+    RES% = RES% + RES% / 2
+    
+    REM if LSBs, shift to the left (cut highest bit) and fix bit 1
+    IF COL% = 1
+      RES%=(RES% * 2 AND 31) + (RES% AND 1)
+    ENDIF
+    
+    REM finally writing the bits into the above adressed UDG
+    REM two time, because we zoomed in 2x. row of the UDG is incremented internally by the LCD IC
+    POKEB $181, RES$
+    POKEB $181, RES$
+    ROW% = ROW% + 1
+  UNTIL ROW% = 9
+  REM go to second col
+  COL% = COL% - 3
+  CURU%=2
+UNTIL COL% < 1
